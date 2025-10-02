@@ -481,6 +481,13 @@ func (m model) isKeyInSlice(key string, keys []string) bool {
 		if key == k || key == strings.ToLower(k) {
 			return true
 		}
+		// Handle Ctrl+key format conversion from C-x to ctrl+x
+		if strings.HasPrefix(k, "C-") {
+			ctrlKey := "ctrl+" + strings.ToLower(strings.TrimPrefix(k, "C-"))
+			if key == ctrlKey {
+				return true
+			}
+		}
 		// Handle special key mappings
 		switch k {
 		case "Up", "ArrowUp":
