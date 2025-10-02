@@ -5,6 +5,11 @@
 
 A powerful standalone Markdown renderer for the terminal with advanced search, hyperlink support, and extensive customization options.
 
+<p align="center">
+  <img src="/examples/bleamd-sample-1.png" alt="Screenshot with active search" width="45%" />
+  <img src="/examples/bleamd-sample-2.png" alt="Screenshot with help menu" width="45%" />
+</p>
+
 ## 🚀 Features
 
 - 📖 Beautiful Markdown rendering in your terminal
