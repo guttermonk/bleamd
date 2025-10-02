@@ -1,46 +1,37 @@
-# bleamd - Markdown Renderer & Search
+# 🌈 bleamd
 
 [![GitHub license](https://img.shields.io/github/license/guttermonk/bleamd.svg?style=for-the-badge)](https://github.com/guttermonk/bleamd/blob/master/LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/guttermonk/bleamd?style=for-the-badge)](https://github.com/guttermonk/bleamd/stargazers)
 
 A powerful standalone Markdown renderer for the terminal with advanced search, hyperlink support, and extensive customization options.
 
-## 🚀 New & Notable Features
-
-- 🔗 **Clickable Hyperlinks** - OSC 8 terminal hyperlinks that open in your browser
-- 🔍 **Advanced Search** - Full-text search with smart highlighting and match navigation
-- ❓ **Interactive Help** - Press `?` for instant keybinding reference popup
-- 🎨 **Rich Theming** - Multiple built-in themes plus full color customization
-- ⌨️ **Custom Keybindings** - Configure every keyboard shortcut to your preference
-- 🖱️ **Mouse Support** - Click and scroll support in compatible terminals
-- ⚡ **Vim Bindings** - Native support for Vim bindings using Qwerty and Colemak-DH layouts
-
-## Features
+## 🚀 Features
 
 - 📖 Beautiful Markdown rendering in your terminal
-- 🔍 **Intelligent full-text search** with highlighting (Ctrl+F)
+- 🔍 **Advanced Search** - Full-text search with smart highlighting and match navigation
   - Current match highlighted in bright orange
   - All matches highlighted in yellow
   - Match counter in status bar
   - Navigate with `n`/`N` (next/previous)
 - 🔗 **Clickable hyperlinks** - Links are underlined and clickable in supported terminals
 - ⌨️ **Fully customizable keybindings** - Vim-like defaults with Colemak-DH support
-- ❓ **Interactive help popup** - Press `?` to see all available keybindings
+- ❓ **Interactive Help** - Press `?` for instant keybinding reference popup
 - 🎨 **Advanced theming system**
   - 4 built-in themes (One Dark, Dracula, Solarized Dark, Catppuccin Latte)
   - Full color customization for all elements
   - ANSI 256 color support
-- 🖱️ **Mouse support** - Scroll and interact with compatible terminals
+- 🖱️ **Mouse support** - Click and scroll support in compatible terminals
 - 📊 **Rich table rendering** with proper borders and alignment
 - 💻 **Syntax highlighting** for code blocks
+- ⚡ **Vim Bindings** - Native support for Vim bindings using Qwerty and Colemak-DH layouts
 - ❄️ **Native NixOS support** with flakes and development shell
 
-## Installation
+## 💿 Installation
 
-### Binary Release
+### 📦 Binary Release
 Download a [pre-compiled binary](https://github.com/guttermonk/bleamd/releases/latest) for your platform.
 
-### NixOS / Nix
+### ❄️ NixOS / Nix
 ```bash
 # Run directly
 nix run github:guttermonk/bleamd -- README.md
@@ -55,7 +46,7 @@ nix build
 ./result/bin/bleamd README.md
 ```
 
-### From Source
+### 🔨 From Source
 ```bash
 git clone https://github.com/guttermonk/bleamd
 cd bleamd
@@ -63,7 +54,7 @@ go build
 ./bleamd README.md
 ```
 
-## Usage
+## 📔 Usage
 
 ```bash
 bleamd README.md                  # Render a markdown file
@@ -73,11 +64,11 @@ bleamd --init-config              # Create default config file
 bleamd --config-path              # Show config file location
 ```
 
-## Keybindings
+## ⌨️ Keybindings
 
 Press `?` at any time to display an interactive help popup with all available keybindings. All keybindings are fully configurable via the config file.
 
-### Default Navigation Keys
+### 🧭 Default Navigation Keys
 | Key | Action |
 |-----|--------|
 | `↑` `k` `i` | Scroll up |
@@ -91,7 +82,7 @@ Press `?` at any time to display an interactive help popup with all available ke
 | `?` | **Show interactive help** |
 | `q` `Ctrl+C` | Quit |
 
-### Search Features
+### 🔍 Search Features
 | Key | Action |
 |-----|--------|
 | `Ctrl+F` `/` | Start search |
@@ -105,13 +96,13 @@ Press `?` at any time to display an interactive help popup with all available ke
 - 🟡 **Other matches**: Yellow text
 - 📊 **Status bar**: Shows "Match X of Y" with search term
 
-### Hyperlinks
+### 🔗 Hyperlinks
 Links in your markdown are automatically converted to clickable hyperlinks in compatible terminals:
 - Underlined and styled according to your theme
 - Click to open in your default browser
 - Works with http/https URLs and mailto links
 
-## Configuration & Theming
+## 🎛️ Configuration & Theming
 
 Create and customize your configuration:
 
@@ -120,7 +111,7 @@ bleamd --init-config      # Create default config with One Dark theme
 bleamd --config-path      # Show config file location
 ```
 
-### Pre-built Themes
+### 🥸 Pre-built Themes
 
 Choose from professionally designed themes:
 
@@ -138,7 +129,7 @@ cp themes/solarized-dark.json ~/.config/bleamd/config.json
 cp themes/catppuccin-latte.json ~/.config/bleamd/config.json
 ```
 
-### Custom Keybindings
+### 🪄 Custom Keybindings
 
 Configure your preferred keybindings in `~/.config/bleamd/config.json`. Each action supports multiple key combinations:
 
@@ -169,7 +160,7 @@ Configure your preferred keybindings in `~/.config/bleamd/config.json`. Each act
 - Special keys: `"PageUp"`, `"PageDown"`, `"Space"`, `"Enter"`, `"Escape"`
 - Control combinations: `"C-f"`, `"C-c"`, `"C-n"`, `"C-p"`
 
-### Advanced Color Customization
+### 🦄 Advanced Color Customization
 
 Customize every visual element in your config file:
 
@@ -205,7 +196,7 @@ Customize every visual element in your config file:
 
 All colors use hex format (e.g., `#ff0000`) and are automatically converted to the nearest ANSI 256 color for terminal display.
 
-## Development
+## 🔧 Development
 
 ### Nix Development Shell
 ```bash
@@ -222,15 +213,7 @@ make build
 
 The development environment includes Go, gopls, golangci-lint, and other useful tools.
 
-## Examples
-
-Check out the visual examples in the `examples/` directory:
-
-![Rendered markdown with syntax highlighting](examples/markdown.png)
-![Beautiful table rendering](examples/table.png)
-![Syntax highlighted code blocks](examples/code.png)
-
-## Contributing
+## ⏳ Contributing
 
 PRs welcome! When contributing:
 
@@ -239,11 +222,11 @@ PRs welcome! When contributing:
 3. Update vendor hash in `flake.nix` if dependencies change
 4. Test with different themes and keybinding configurations
 
-## License
+## ⚖️ License
 
 MIT
 
-## FAQ
+## ❓ FAQ
 
 ### How does bleamd compare to other markdown viewers?
 
@@ -265,7 +248,7 @@ MIT
 
 **bleamd's niche**: Fast, interactive terminal viewer with powerful search, full customization, and clickable links for terminal-centric workflows.
 
-## Origin
+## 📓 Origin
 
 This tool is a fork of [mdr](https://github.com/MichaelMure/mdr) with extensive enhancements including:
 - Advanced search functionality with highlighting
