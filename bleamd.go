@@ -888,9 +888,16 @@ func (m model) render() []byte {
 }
 
 func (m model) renderHelp(backgroundContent []byte) string {
-	// Render the full background view exactly as it would appear normally
-	// This is simpler than trying to reconstruct it
+	// Render the full background view WITHOUT search highlighting
+	// Save the current search term and clear it temporarily
+	savedSearchTerm := m.search.term
+	m.search.term = ""
+	
 	normalView := m.renderNormalView()
+	
+	// Restore the search term
+	m.search.term = savedSearchTerm
+	
 	bgLines := strings.Split(normalView, "\n")
 	
 	// Ensure we have exactly m.height lines
