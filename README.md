@@ -19,7 +19,7 @@ A powerful standalone Markdown renderer for the terminal with advanced search, h
   - Match counter in status bar
   - Navigate with `n`/`N` (next/previous)
 - 🔗 **Clickable hyperlinks** - Links are underlined and clickable in supported terminals
-- ⌨️ **Fully customizable keybindings** - Vim-like defaults with Colemak-DH support
+- ⌨️ **Fully customizable keybindings** - Vim-like defaults with custom keyboard layout support
 - ❓ **Interactive Help** - Press `?` for instant keybinding reference popup
 - 🎨 **Advanced theming system**
   - 4 built-in themes (One Dark, Dracula, Solarized Dark, Catppuccin Latte)
@@ -235,21 +235,21 @@ MIT
 
 ### How does bleamd compare to other markdown viewers?
 
-| Feature | bleamd | [Glow](https://github.com/charmbracelet/glow/) | [mdr](https://github.com/MichaelMure/mdr/) | [mdv](https://github.com/axiros/terminal_markdown_viewer) | [Grip](https://github.com/joeyespo/grip) | [Pandoc](https://github.com/jgm/pandoc) |
-|---------|--------|------|-----|-----|------|--------|
-| **Interactive TUI** | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Full-text search** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Clickable hyperlinks** | ✅ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| **Custom keybindings** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Multiple themes** | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ |
-| **Mouse support** | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ |
-| **File management** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Cloud sync** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Live reload** | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
-| **Format conversion** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Terminal-native** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| **Offline support** | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| **Language** | Go | Go | Go | Python | Python | Haskell |
+| Feature | bleamd | [Glow](https://github.com/charmbracelet/glow/) | [mdr](https://github.com/MichaelMure/mdr/) | [md-tui](https://github.com/henriklovhaug/md-tui) | [mdv](https://github.com/axiros/terminal_markdown_viewer) | [Grip](https://github.com/joeyespo/grip) | [Pandoc](https://github.com/jgm/pandoc) |
+|---------|--------|------|-----|--------|-----|------|--------|
+| **Interactive TUI** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| **Full-text search** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Clickable hyperlinks** | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| **Custom keybindings** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Multiple themes** | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ❌ |
+| **Mouse support** | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ |
+| **File management** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Cloud sync** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Live reload** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| **Format conversion** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **Terminal-native** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| **Offline support** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| **Language** | Go | Go | Go | Rust | Python | Python | Haskell |
 
 **bleamd's niche**: Fast, interactive terminal viewer with powerful search, full customization, and clickable links for terminal-centric workflows.
 
@@ -262,6 +262,6 @@ This tool is a fork of [mdr](https://github.com/MichaelMure/mdr) with extensive 
 - Configurable keybindings
 - Rich theming system
 - Mouse support
-- Colemak-DH keyboard layout support
+- Custom keyboard layout support
 
 Perfect for developers, writers, and anyone who works with Markdown files in the terminal.
