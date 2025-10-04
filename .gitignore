@@ -29,3 +29,6 @@ devenv.local.nix
 *.swo
 *~
 .DS_Store
+
+# Claude/AI assistant documentation
+CLAUDE.md
