@@ -208,7 +208,8 @@ func newModel(content []byte) model {
 	m.styles.searchBox = searchBoxStyle
 	
 	m.styles.statusBar = lipgloss.NewStyle().
-		Foreground(lipgloss.Color("241"))
+		Foreground(lipgloss.Color("241")).
+		MarginTop(1)
 	
 	return m
 }
@@ -253,7 +254,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) updateLinkPositions() model {
 	// DEBUG
-	f, _ := os.Create("/tmp/mdrs_update_debug.txt")
+	f, _ := os.Create("/tmp/bleamd_update_debug.txt")
 	if f != nil {
 		fmt.Fprintf(f, "updateLinkPositions called\n")
 		fmt.Fprintf(f, "  width=%d, height=%d\n", m.width, m.height)
@@ -527,8 +528,8 @@ func (m model) renderStatusBar() string {
 	// If hovering over a link, show the URL instead of keybindings
 	if m.hoveredURL != "" {
 		style := lipgloss.NewStyle().
-			Width(m.width).
-			Padding(0, 1)
+			PaddingLeft(1).
+			PaddingRight(1)
 		
 		// Apply hovered link URL color if configured, otherwise use status bar text color
 		if m.config.Colors.HoveredLinkURL != "" {
@@ -625,8 +626,8 @@ func (m model) renderStatusBar() string {
 	
 	// Apply styling - full width with configurable colors
 	style := lipgloss.NewStyle().
-		Width(m.width).
-		Padding(0, 1)
+		PaddingLeft(1).
+		PaddingRight(1)
 	
 	// Apply text color if configured
 	if m.config.Colors.StatusBarText != "" {
@@ -661,13 +662,15 @@ func (m model) View() string {
 	
 	// Calculate visible area
 	visibleHeight := m.height
-	visibleHeight -= 1 // Always reserve space for status bar at bottom
+	visibleHeight -= 2 // Reserve 2 blank lines above status bar  
 	if m.searchActive {
 		visibleHeight -= 3 // Reserve space for search input
 	}
 	if m.search.term != "" {
 		visibleHeight -= 1 // Reserve space for search status (Match X of Y)
 	}
+	// Note: We don't subtract 1 for the status bar itself because the status bar 
+	// shares a line with the last newline from the content
 	
 	// Apply vertical scrolling
 	startLine := m.yOffset
@@ -707,26 +710,7 @@ func (m model) View() string {
 	// Calculate how many lines we've used so far
 	contentLines := len(visibleLines)
 	
-	// Calculate how much padding we need before search box and status bar
-	searchBoxLines := 0
-	if m.searchActive {
-		searchBoxLines = 3 // Search box typically takes 3 lines with border
-	}
-	
-	extraLines := 0
-	if m.search.term != "" {
-		extraLines = 1 // Reserve space for search status (Match X of Y)
-	}
-	
-	totalUsedLines := contentLines + extraLines + searchBoxLines + 1 // +1 for status bar itself
-	if totalUsedLines < m.height {
-		paddingNeeded := m.height - totalUsedLines
-		for i := 0; i < paddingNeeded; i++ {
-			result += "\n"
-		}
-	}
-	
-	// Add search status if needed (Match X of Y) - after padding, before search box
+	// Add search status if needed (Match X of Y)
 	if m.search.term != "" {
 		statusText := m.search.GetStatusText()
 		if statusText != "" {
@@ -743,10 +727,11 @@ func (m model) View() string {
 			}
 			
 			result += "\n" + searchStatusStyle.Render(statusText)
+			contentLines++
 		}
 	}
 	
-	// Add search input if active (after padding, before status bar)
+	// Add search input if active
 	if m.searchActive {
 		// Create outer container that spans full width to center the search box
 		searchBox := m.styles.searchBox.
@@ -760,10 +745,29 @@ func (m model) View() string {
 			Render(searchBox)
 		
 		result += "\n" + centered
+		contentLines += 3 // Search box takes 3 lines with border
 	}
 	
-	// Always add status bar at bottom
-	result += "\n" + m.renderStatusBar()
+	// Calculate how much padding we need to push status bar to bottom
+	// We need: contentLines + padding + 2 blank lines + status bar = m.height lines total
+	// Which means: contentLines + padding + 2 + 1 = m.height
+	// So: padding = m.height - contentLines - 3
+	// BUT: we need one extra line because status bar shares the last line
+	linesNeededForStatusBar := 2 // 2 blank lines above status bar
+	availableLinesForPadding := m.height - contentLines - linesNeededForStatusBar // status bar doesn't need a separate line count
+	
+	// Add padding to push status bar to bottom
+	if availableLinesForPadding > 0 {
+		for i := 0; i < availableLinesForPadding; i++ {
+			result += "\n"
+		}
+	}
+	
+	// Add 2 blank lines above the status bar (margin top)
+	result += "\n\n"
+	
+	// Add status bar - this should be the last line, no newlines after
+	result += m.renderStatusBar()
 	
 	return result
 }
@@ -778,7 +782,7 @@ func (m model) extractLinkPositions(content string) []linkPosition {
 	lines := strings.Split(content, "\n")
 	
 	// DEBUG
-	f, _ := os.Create("/tmp/mdrs_extract_debug.txt")
+	f, _ := os.Create("/tmp/bleamd_extract_debug.txt")
 	if f != nil {
 		fmt.Fprintf(f, "extractLinkPositions called with %d lines\n", len(lines))
 	}
@@ -930,7 +934,7 @@ func (m model) renderHelp(backgroundContent []byte) string {
 	}
 	
 	// DEBUG
-	f, _ := os.Create("/tmp/mdrs_help_debug.txt")
+	f, _ := os.Create("/tmp/bleamd_help_debug.txt")
 	if f != nil {
 		fmt.Fprintf(f, "m.width=%d, m.height=%d\n", m.width, m.height)
 		fmt.Fprintf(f, "helpWidth=%d, helpHeight=%d\n", helpWidth, helpHeight)
@@ -949,7 +953,7 @@ func (m model) renderHelp(backgroundContent []byte) string {
 	}
 	
 	// DEBUG
-	f, _ = os.OpenFile("/tmp/mdrs_help_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
+	f, _ = os.OpenFile("/tmp/bleamd_help_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
 	if f != nil {
 		fmt.Fprintf(f, "startX=%d, startY=%d\n", startX, startY)
 		f.Close()
@@ -1006,13 +1010,15 @@ func (m model) renderNormalView() string {
 	
 	// Calculate visible area
 	visibleHeight := m.height
-	visibleHeight -= 1 // Always reserve space for status bar at bottom
+	visibleHeight -= 2 // Reserve 2 blank lines above status bar  
 	if m.searchActive {
 		visibleHeight -= 3 // Reserve space for search input
 	}
 	if m.search.term != "" {
 		visibleHeight -= 1 // Reserve space for search status (Match X of Y)
 	}
+	// Note: We don't subtract 1 for the status bar itself because the status bar 
+	// shares a line with the last newline from the content
 	
 	// Apply vertical scrolling
 	startLine := m.yOffset
@@ -1052,26 +1058,7 @@ func (m model) renderNormalView() string {
 	// Calculate how many lines we've used so far
 	contentLines := len(visibleLines)
 	
-	// Calculate how much padding we need before search box and status bar
-	searchBoxLines := 0
-	if m.searchActive {
-		searchBoxLines = 3 // Search box typically takes 3 lines with border
-	}
-	
-	extraLines := 0
-	if m.search.term != "" {
-		extraLines = 1 // Reserve space for search status (Match X of Y)
-	}
-	
-	totalUsedLines := contentLines + extraLines + searchBoxLines + 1 // +1 for status bar itself
-	if totalUsedLines < m.height {
-		paddingNeeded := m.height - totalUsedLines
-		for i := 0; i < paddingNeeded; i++ {
-			result += "\n"
-		}
-	}
-	
-	// Add search status if needed (Match X of Y) - after padding, before search box
+	// Add search status if needed (Match X of Y)
 	if m.search.term != "" {
 		statusText := m.search.GetStatusText()
 		if statusText != "" {
@@ -1088,10 +1075,11 @@ func (m model) renderNormalView() string {
 			}
 			
 			result += "\n" + searchStatusStyle.Render(statusText)
+			contentLines++
 		}
 	}
 	
-	// Add search input if active (after padding, before status bar)
+	// Add search input if active
 	if m.searchActive {
 		// Create outer container that spans full width to center the search box
 		searchBox := m.styles.searchBox.
@@ -1105,10 +1093,29 @@ func (m model) renderNormalView() string {
 			Render(searchBox)
 		
 		result += "\n" + centered
+		contentLines += 3 // Search box takes 3 lines with border
 	}
 	
-	// Always add status bar at bottom
-	result += "\n" + m.renderStatusBar()
+	// Calculate how much padding we need to push status bar to bottom
+	// We need: contentLines + padding + 2 blank lines + status bar = m.height lines total
+	// Which means: contentLines + padding + 2 + 1 = m.height
+	// So: padding = m.height - contentLines - 3
+	// BUT: we need one extra line because status bar shares the last line
+	linesNeededForStatusBar := 2 // 2 blank lines above status bar
+	availableLinesForPadding := m.height - contentLines - linesNeededForStatusBar // status bar doesn't need a separate line count
+	
+	// Add padding to push status bar to bottom
+	if availableLinesForPadding > 0 {
+		for i := 0; i < availableLinesForPadding; i++ {
+			result += "\n"
+		}
+	}
+	
+	// Add 2 blank lines above the status bar (margin top)
+	result += "\n\n"
+	
+	// Add status bar - this should be the last line, no newlines after
+	result += m.renderStatusBar()
 	
 	return result
 }
@@ -1305,7 +1312,7 @@ func (m model) executeSearch() (model, tea.Cmd) {
 	m.search.SetTerm(searchText, string(m.renderedContent))
 	
 	// DEBUG: Write match count to file
-	f, _ := os.Create("/tmp/mdrs_debug.txt")
+	f, _ := os.Create("/tmp/bleamd_debug.txt")
 	if f != nil {
 		fmt.Fprintf(f, "Search term: %s\n", searchText)
 		fmt.Fprintf(f, "Match count: %d\n", m.search.GetMatchCount())
@@ -1323,7 +1330,7 @@ func (m model) executeSearch() (model, tea.Cmd) {
 	}
 	
 	// DEBUG: Write yOffset after scroll
-	f, _ = os.OpenFile("/tmp/mdrs_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
+	f, _ = os.OpenFile("/tmp/bleamd_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
 	if f != nil {
 		fmt.Fprintf(f, "yOffset after scroll: %d\n", m.yOffset)
 		f.Close()
@@ -1361,7 +1368,7 @@ func (m model) nextMatch() model {
 	}
 	
 	// DEBUG
-	f, _ := os.OpenFile("/tmp/mdrs_debug.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	f, _ := os.OpenFile("/tmp/bleamd_debug.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if f != nil {
 		fmt.Fprintf(f, "\n=== NextMatch called ===\n")
 		fmt.Fprintf(f, "Before: currentIndex=%d, yOffset=%d\n", m.search.currentIndex, m.yOffset)
@@ -1370,7 +1377,7 @@ func (m model) nextMatch() model {
 	
 	if match, ok := m.search.NextMatch(); ok {
 		// DEBUG
-		f, _ := os.OpenFile("/tmp/mdrs_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
+		f, _ := os.OpenFile("/tmp/bleamd_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
 		if f != nil {
 			fmt.Fprintf(f, "NextMatch returned: line %d, col %d\n", match.lineNumber, match.column)
 			f.Close()
@@ -1379,7 +1386,7 @@ func (m model) nextMatch() model {
 		m = m.scrollToLine(match.lineNumber)
 		
 		// DEBUG
-		f, _ = os.OpenFile("/tmp/mdrs_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
+		f, _ = os.OpenFile("/tmp/bleamd_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
 		if f != nil {
 			fmt.Fprintf(f, "After scroll: yOffset=%d\n", m.yOffset)
 			f.Close()
@@ -1404,13 +1411,15 @@ func (m model) prevMatch() model {
 func (m model) scrollToLine(lineNumber int) model {
 	// Calculate visible height (same as in View())
 	visibleHeight := m.height
-	visibleHeight -= 1 // Always reserve space for status bar at bottom
+	visibleHeight -= 2 // Reserve 2 blank lines above status bar  
 	if m.searchActive {
 		visibleHeight -= 3 // Reserve space for search input
 	}
 	if m.search.term != "" {
 		visibleHeight -= 1 // Reserve space for search status (Match X of Y)
 	}
+	// Note: We don't subtract 1 for the status bar itself because the status bar 
+	// shares a line with the last newline from the content
 	
 	// Try to center the match on screen
 	targetOffset := lineNumber - visibleHeight/2
