@@ -873,10 +873,13 @@ func (m model) render() []byte {
 		renderWidth = 40
 	}
 	
-	rendered := markdown.Render(m.raw, renderWidth, padding, opts...)
+	// Process badges before rendering
+	processedMarkdown := processBadges(m.raw, m.config)
+	
+	rendered := markdown.Render(processedMarkdown, renderWidth, padding, opts...)
 	
 	// Add hyperlinks with underlines (pass hoveredURL for hover state)
-	rendered = addHyperlinks(rendered, m.raw, m.config, m.hoveredURL)
+	rendered = addHyperlinks(rendered, processedMarkdown, m.config, m.hoveredURL)
 	
 	// Count lines
 	lineCount := 0
