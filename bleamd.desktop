@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=bleamd
+Comment=A powerful standalone Markdown renderer for the terminal
+Exec=bleamd %f
+Icon=/usr/share/pixmaps/bleamd-icon.svg
+Terminal=true
+Categories=Utility;TextEditor;
+MimeType=text/markdown;text/x-markdown;
+Keywords=markdown;viewer;terminal;renderer;
