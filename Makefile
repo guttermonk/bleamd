@@ -9,13 +9,28 @@ LDFLAGS:=-X main.GitCommit=${GIT_COMMIT} \
 	-X main.GitLastTag=${GIT_LAST_TAG} \
 	-X main.GitExactTag=${GIT_EXACT_TAG}
 
+PREFIX  ?= /usr/local
+DESTDIR ?=
+
+BINDIR  := $(DESTDIR)$(PREFIX)/bin
+ICONDIR := $(DESTDIR)$(PREFIX)/share/pixmaps
+APPDIR  := $(DESTDIR)$(PREFIX)/share/applications
+
 build:
 	go build -ldflags "$(LDFLAGS)" .
 
-install:
-	go install -ldflags "$(LDFLAGS)" .
+install: build
+	install -Dm755 bleamd        $(BINDIR)/bleamd
+	install -Dm644 bleamd-icon.svg $(ICONDIR)/bleamd-icon.svg
+	sed 's|Icon=.*|Icon=$(ICONDIR)/bleamd-icon.svg|' bleamd.desktop \
+		| install -Dm644 /dev/stdin $(APPDIR)/bleamd.desktop
+
+uninstall:
+	rm -f $(BINDIR)/bleamd
+	rm -f $(ICONDIR)/bleamd-icon.svg
+	rm -f $(APPDIR)/bleamd.desktop
 
 releases:
 	gox -ldflags "$(LDFLAGS)" -output "dist/{{.Dir}}_{{.OS}}_{{.Arch}}"
 
-.PHONY: build install releases
+.PHONY: build install uninstall releases
