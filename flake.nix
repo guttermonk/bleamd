@@ -45,6 +45,11 @@
               if [ -f $out/bin/mdr ] && [ ! -f $out/bin/bleamd ]; then
                 mv $out/bin/mdr $out/bin/bleamd
               fi
+
+              install -Dm644 ${./bleamd-icon.svg} $out/share/pixmaps/bleamd-icon.svg
+
+              sed 's|Icon=.*|Icon=$out/share/pixmaps/bleamd-icon.svg|' ${./bleamd.desktop} \
+                | install -Dm644 /dev/stdin $out/share/applications/bleamd.desktop
             '';
             
             # Disable tests that might require network access
