@@ -1,3 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
-  <text x="24" y="36" font-size="36" text-anchor="middle" font-family="Noto Color Emoji, Apple Color Emoji, Segoe UI Emoji, sans-serif">🌈</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 58" width="48" height="48">
+  <!-- Sky background -->
+  <rect width="100" height="58" fill="#87CEEB"/>
+  <!-- Red -->
+  <path d="M 0,58 A 50,50 0 0,1 100,58" fill="none" stroke="#FF3B3B" stroke-width="5" stroke-linecap="butt"/>
+  <!-- Orange -->
+  <path d="M 7,58 A 43,43 0 0,1 93,58" fill="none" stroke="#FF8C00" stroke-width="5" stroke-linecap="butt"/>
+  <!-- Yellow -->
+  <path d="M 14,58 A 36,36 0 0,1 86,58" fill="none" stroke="#FFE600" stroke-width="5" stroke-linecap="butt"/>
+  <!-- Green -->
+  <path d="M 21,58 A 29,29 0 0,1 79,58" fill="none" stroke="#2ECC40" stroke-width="5" stroke-linecap="butt"/>
+  <!-- Blue -->
+  <path d="M 28,58 A 22,22 0 0,1 72,58" fill="none" stroke="#0074D9" stroke-width="5" stroke-linecap="butt"/>
+  <!-- Indigo -->
+  <path d="M 35,58 A 15,15 0 0,1 65,58" fill="none" stroke="#4B0082" stroke-width="5" stroke-linecap="butt"/>
+  <!-- Violet -->
+  <path d="M 42,58 A 8,8 0 0,1 58,58" fill="none" stroke="#9B59B6" stroke-width="5" stroke-linecap="butt"/>
 </svg>
