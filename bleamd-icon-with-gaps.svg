@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 52" width="48" height="48">
+  <!-- Left half of a semicircle rainbow. Centre at (50,52).          -->
+  <!-- stroke-width=5, spacing=6 (1px gap between bands). Radii: 46..16. -->
+  <!-- Red -->
+  <path d="M 4,52 A 46,46 0 0,1 50,6"  fill="none" stroke="#FF3333" stroke-width="5" stroke-linecap="butt"/>
+  <!-- Orange -->
+  <path d="M 10,52 A 40,40 0 0,1 50,12" fill="none" stroke="#FF8800" stroke-width="5" stroke-linecap="butt"/>
+  <!-- Yellow -->
+  <path d="M 16,52 A 34,34 0 0,1 50,18" fill="none" stroke="#FFEE00" stroke-width="5" stroke-linecap="butt"/>
+  <!-- Green -->
+  <path d="M 22,52 A 28,28 0 0,1 50,24" fill="none" stroke="#00AA00" stroke-width="5" stroke-linecap="butt"/>
+  <!-- Blue -->
+  <path d="M 28,52 A 22,22 0 0,1 50,30" fill="none" stroke="#1155FF" stroke-width="5" stroke-linecap="butt"/>
+  <!-- Violet -->
+  <path d="M 34,52 A 16,16 0 0,1 50,36" fill="none" stroke="#9933FF" stroke-width="5" stroke-linecap="butt"/>
+</svg>
