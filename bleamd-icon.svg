@@ -1,17 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 52" width="48" height="48">
-  <!-- Left half of a semicircle rainbow. Centre at (50,52).          -->
-  <!-- stroke-width=6, spacing=6 (touching bands). Radii: 46..16.     -->
-  <!-- Red outer edge stays at r=49 from centre; violet moves to r=16 -->
+  <!-- Left half of a semicircle rainbow. Centre at (50,52).               -->
+  <!-- stroke-width=6, spacing=5 (1px overlap) eliminates anti-alias gaps. -->
+  <!-- Radii: 46, 41, 36, 31, 26, 21. Inner bands drawn last, on top.      -->
   <!-- Red -->
   <path d="M 4,52 A 46,46 0 0,1 50,6"  fill="none" stroke="#FF3333" stroke-width="6" stroke-linecap="butt"/>
   <!-- Orange -->
-  <path d="M 10,52 A 40,40 0 0,1 50,12" fill="none" stroke="#FF8800" stroke-width="6" stroke-linecap="butt"/>
+  <path d="M 9,52 A 41,41 0 0,1 50,11" fill="none" stroke="#FF8800" stroke-width="6" stroke-linecap="butt"/>
   <!-- Yellow -->
-  <path d="M 16,52 A 34,34 0 0,1 50,18" fill="none" stroke="#FFEE00" stroke-width="6" stroke-linecap="butt"/>
+  <path d="M 14,52 A 36,36 0 0,1 50,16" fill="none" stroke="#FFEE00" stroke-width="6" stroke-linecap="butt"/>
   <!-- Green -->
-  <path d="M 22,52 A 28,28 0 0,1 50,24" fill="none" stroke="#00AA00" stroke-width="6" stroke-linecap="butt"/>
+  <path d="M 19,52 A 31,31 0 0,1 50,21" fill="none" stroke="#00AA00" stroke-width="6" stroke-linecap="butt"/>
   <!-- Blue -->
-  <path d="M 28,52 A 22,22 0 0,1 50,30" fill="none" stroke="#1155FF" stroke-width="6" stroke-linecap="butt"/>
+  <path d="M 24,52 A 26,26 0 0,1 50,26" fill="none" stroke="#1155FF" stroke-width="6" stroke-linecap="butt"/>
   <!-- Violet -->
-  <path d="M 34,52 A 16,16 0 0,1 50,36" fill="none" stroke="#9933FF" stroke-width="6" stroke-linecap="butt"/>
+  <path d="M 29,52 A 21,21 0 0,1 50,31" fill="none" stroke="#9933FF" stroke-width="6" stroke-linecap="butt"/>
 </svg>
