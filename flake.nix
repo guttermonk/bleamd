@@ -48,7 +48,7 @@
 
               install -Dm644 ${./bleamd-icon.svg} $out/share/pixmaps/bleamd-icon.svg
 
-              sed 's|Icon=.*|Icon=$out/share/pixmaps/bleamd-icon.svg|' ${./bleamd.desktop} \
+              sed "s|Icon=.*|Icon=$out/share/pixmaps/bleamd-icon.svg|" ${./bleamd.desktop} \
                 | install -Dm644 /dev/stdin $out/share/applications/bleamd.desktop
             '';
             
