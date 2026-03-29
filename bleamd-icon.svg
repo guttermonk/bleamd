@@ -1,17 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 52" width="48" height="48">
-  <!-- Left half of a semicircle rainbow. Centre at (50,52).               -->
-  <!-- stroke-width=6, spacing=5 (1px overlap) eliminates anti-alias gaps. -->
-  <!-- Radii: 46, 41, 36, 31, 26, 21. Inner bands drawn last, on top.      -->
-  <!-- Red -->
-  <path d="M 4,52 A 46,46 0 0,1 50,6"  fill="none" stroke="#FF3333" stroke-width="6" stroke-linecap="butt"/>
-  <!-- Orange -->
-  <path d="M 9,52 A 41,41 0 0,1 50,11" fill="none" stroke="#FF8800" stroke-width="6" stroke-linecap="butt"/>
-  <!-- Yellow -->
-  <path d="M 14,52 A 36,36 0 0,1 50,16" fill="none" stroke="#FFEE00" stroke-width="6" stroke-linecap="butt"/>
-  <!-- Green -->
-  <path d="M 19,52 A 31,31 0 0,1 50,21" fill="none" stroke="#00AA00" stroke-width="6" stroke-linecap="butt"/>
-  <!-- Blue -->
-  <path d="M 24,52 A 26,26 0 0,1 50,26" fill="none" stroke="#1155FF" stroke-width="6" stroke-linecap="butt"/>
-  <!-- Violet -->
-  <path d="M 29,52 A 21,21 0 0,1 50,31" fill="none" stroke="#9933FF" stroke-width="6" stroke-linecap="butt"/>
+  <defs>
+    <!--
+      Radial gradient centred at (50,52) — the bottom-right corner, which is
+      also the centre of all the arc radii.  r=49 is the outer edge of red.
+      Hard stops (duplicate offsets) give clean colour boundaries with no
+      path edges between bands, so anti-aliasing can never create a dark line.
+      The innermost region (r < 13) is transparent via stop-opacity="0".
+    -->
+    <radialGradient id="rg" cx="50" cy="52" r="49" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"      stop-color="#9933FF" stop-opacity="0"/>
+      <stop offset="26.53%"  stop-color="#9933FF" stop-opacity="0"/>
+      <stop offset="26.53%"  stop-color="#9933FF"/>
+      <stop offset="38.78%"  stop-color="#9933FF"/>
+      <stop offset="38.78%"  stop-color="#1155FF"/>
+      <stop offset="51.02%"  stop-color="#1155FF"/>
+      <stop offset="51.02%"  stop-color="#00AA00"/>
+      <stop offset="63.27%"  stop-color="#00AA00"/>
+      <stop offset="63.27%"  stop-color="#FFEE00"/>
+      <stop offset="75.51%"  stop-color="#FFEE00"/>
+      <stop offset="75.51%"  stop-color="#FF8800"/>
+      <stop offset="87.76%"  stop-color="#FF8800"/>
+      <stop offset="87.76%"  stop-color="#FF3333"/>
+      <stop offset="100%"    stop-color="#FF3333"/>
+    </radialGradient>
+  </defs>
+  <!--
+    A single quarter-disk path.  The gradient provides all colour bands and
+    the inner transparency — there are no separate path edges between colours.
+    Arc: centre (50,52), r=49, from (1,52) sweeping CW to (50,3), then back
+    to the centre corner (50,52) to close the sector.
+  -->
+  <path d="M 1,52 A 49,49 0 0,1 50,3 L 50,52 Z" fill="url(#rg)"/>
 </svg>
