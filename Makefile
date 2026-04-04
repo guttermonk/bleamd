@@ -13,7 +13,7 @@ PREFIX  ?= /usr/local
 DESTDIR ?=
 
 BINDIR  := $(DESTDIR)$(PREFIX)/bin
-ICONDIR := $(DESTDIR)$(PREFIX)/share/pixmaps
+ICONDIR := $(DESTDIR)$(PREFIX)/share/icons/hicolor/scalable/apps
 APPDIR  := $(DESTDIR)$(PREFIX)/share/applications
 
 build:
@@ -22,8 +22,7 @@ build:
 install: build
 	install -Dm755 bleamd        $(BINDIR)/bleamd
 	install -Dm644 bleamd-icon.svg $(ICONDIR)/bleamd-icon.svg
-	sed 's|Icon=.*|Icon=$(ICONDIR)/bleamd-icon.svg|' bleamd.desktop \
-		| install -Dm644 /dev/stdin $(APPDIR)/bleamd.desktop
+	install -Dm644 bleamd.desktop  $(APPDIR)/bleamd.desktop
 
 uninstall:
 	rm -f $(BINDIR)/bleamd
