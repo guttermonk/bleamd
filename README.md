@@ -36,6 +36,38 @@ A powerful standalone Markdown renderer for the terminal with advanced search, h
 ### 📦 Binary Release
 Download a [pre-compiled binary](https://github.com/guttermonk/bleamd/releases/latest) for your platform.
 
+Available targets:
+
+| OS | Architecture | Asset |
+|----|--------------|-------|
+| Linux | x86_64 | `bleamd-linux-amd64` |
+| Linux | aarch64 (ARM64) | `bleamd-linux-arm64` |
+| macOS | Intel (x86_64) | `bleamd-darwin-amd64` |
+| macOS | Apple Silicon (ARM64) | `bleamd-darwin-arm64` |
+| Windows | x86_64 | `bleamd-windows-amd64.exe` |
+| Windows | ARM64 | `bleamd-windows-arm64.exe` |
+
+After download, mark executable (`chmod +x bleamd-linux-amd64`) and move into your `$PATH` (`/usr/local/bin/bleamd`).
+
+### 🐧 Arch Linux (AUR)
+
+Install from source via the [`bleamd-git`](https://aur.archlinux.org/packages/bleamd-git) AUR package:
+
+```bash
+# Using yay
+yay -S bleamd-git
+
+# Using paru
+paru -S bleamd-git
+
+# Manual
+git clone https://aur.archlinux.org/bleamd-git.git
+cd bleamd-git
+makepkg -si
+```
+
+> A binary AUR package (`bleamd-bin`) tracking the GitHub releases produced by this workflow is planned once the first tagged release ships.
+
 ### ❄️ NixOS / Nix
 ```bash
 # Run directly
