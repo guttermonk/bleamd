@@ -24,16 +24,11 @@
             pname = "bleamd";
             inherit version;
             
-            src = pkgs.lib.cleanSourceWith {
-              src = ./.;
-              filter = path: type:
-                let baseName = baseNameOf (toString path);
-                in !(baseName == "vendor" && type == "directory");
-            };
+            src = pkgs.lib.cleanSource ./.;
             
             # Generate vendor hash with: nix run nixpkgs#nix-prefetch-git -- --url . --fetch-submodules
             # Or let nix tell you the correct hash on first build
-            vendorHash = "sha256-s7SEUAt9SJEDm8+1N5cb5+mM9M6H7tAfSzZKczu/60s=";
+            vendorHash = "sha256-jS3p8i8ROE5R1G74/Z36I5CL3X2SHBgCR+nF5NZ8oA8=";
             
             # Add version information as build flags
             ldflags = [
