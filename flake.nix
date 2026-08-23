@@ -41,8 +41,6 @@
               "-w"
               "-X main.GitCommit=${gitCommit}"
               "-X main.GitLastTag=v${version}"
-              # The flake cannot see tags, so never assert an exact-tag match.
-              "-X main.GitExactTag=undefined"
             ];
             
             # Ensure binary is named bleamd (Go may name it based on directory/module)
