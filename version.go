@@ -8,13 +8,8 @@ import (
 // These variables are initialized externally during the build. See the Makefile.
 var GitCommit string
 var GitLastTag string
-var GitExactTag string
 
 func printVersion() {
-	if GitExactTag == "undefined" {
-		GitExactTag = ""
-	}
-
 	version := GitLastTag
 
 	if GitLastTag == "" {
