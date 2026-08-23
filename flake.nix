@@ -33,7 +33,7 @@
             
             # Generate vendor hash with: nix run nixpkgs#nix-prefetch-git -- --url . --fetch-submodules
             # Or let nix tell you the correct hash on first build
-            vendorHash = "sha256-XMl/NmD/Ki2Jx9glICHKFMv4Sjk6MOlxmP8WANtcbjc=";
+            vendorHash = "sha256-9jULVTcmQ+Z3hLtnVSTmNo2peUJr14NXW+KY84lj9Dg=";
             
             # Add version information as build flags
             ldflags = [
