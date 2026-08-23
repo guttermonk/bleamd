@@ -12,7 +12,7 @@
         pkgs = nixpkgs.legacyPackages.${system};
         
         # Version information
-        version = "0.1.0";
+        version = "0.1.1";
         gitCommit = if (self ? rev) then self.rev else "dirty";
         
       in
