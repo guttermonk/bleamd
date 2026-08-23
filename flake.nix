@@ -15,11 +15,10 @@
         #
         # Flake evaluation is pure and Nix does not expose git tags (self gives
         # us rev/shortRev/revCount and nothing more), so the release number
-        # lives in ./VERSION -- the file the git tag is cut from. Commit
-        # identity does come from git, so a build always names its own source.
+        # lives in ./VERSION -- the file the git tag is cut from. The commit is
+        # still baked into the binary, it just stays out of the version label.
         version = nixpkgs.lib.fileContents ./VERSION;
         gitCommit = self.rev or self.dirtyRev or "unknown";
-        gitShortRev = self.shortRev or self.dirtyShortRev or "unknown";
 
       in
       {
@@ -41,9 +40,7 @@
               "-s"
               "-w"
               "-X main.GitCommit=${gitCommit}"
-              # Always carries the commit, so an untagged build never claims to
-              # be the release itself.
-              "-X main.GitLastTag=v${version}+${gitShortRev}"
+              "-X main.GitLastTag=v${version}"
               # The flake cannot see tags, so never assert an exact-tag match.
               "-X main.GitExactTag=undefined"
             ];
