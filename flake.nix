@@ -11,10 +11,16 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         
-        # Version information
-        version = "0.1.1";
-        gitCommit = if (self ? rev) then self.rev else "dirty";
-        
+        # Version information.
+        #
+        # Flake evaluation is pure and Nix does not expose git tags (self gives
+        # us rev/shortRev/revCount and nothing more), so the release number
+        # lives in ./VERSION -- the file the git tag is cut from. Commit
+        # identity does come from git, so a build always names its own source.
+        version = nixpkgs.lib.fileContents ./VERSION;
+        gitCommit = self.rev or self.dirtyRev or "unknown";
+        gitShortRev = self.shortRev or self.dirtyShortRev or "unknown";
+
       in
       {
         packages = {
@@ -35,8 +41,11 @@
               "-s"
               "-w"
               "-X main.GitCommit=${gitCommit}"
-              "-X main.GitLastTag=v${version}"
-              "-X main.GitExactTag=v${version}"
+              # Always carries the commit, so an untagged build never claims to
+              # be the release itself.
+              "-X main.GitLastTag=v${version}+${gitShortRev}"
+              # The flake cannot see tags, so never assert an exact-tag match.
+              "-X main.GitExactTag=undefined"
             ];
             
             # Ensure binary is named bleamd (Go may name it based on directory/module)
