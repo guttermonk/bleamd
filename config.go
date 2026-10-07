@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/MichaelMure/go-term-markdown"
 )
@@ -16,6 +17,68 @@ import (
 type Config struct {
 	Colors     ColorConfig     `json:"colors"`
 	Keybindings KeybindingConfig `json:"keybindings"`
+	UI          UIConfig        `json:"ui"`
+}
+
+// defaultToastDurationMs is how long a toast stays on screen when the config
+// does not say otherwise.
+const defaultToastDurationMs = 3000
+
+// Toast positions
+const (
+	ToastTopRight    = "top-right"
+	ToastBottomRight = "bottom-right"
+)
+
+// defaultToastPosition is where toasts appear when the config is silent.
+const defaultToastPosition = ToastBottomRight
+
+// UIConfig holds behavioural settings that are neither colors nor keybindings
+type UIConfig struct {
+	// ToastDurationMs is how long a toast notification stays on screen, in
+	// milliseconds. Omit it for the default; set it to 0 to disable toasts.
+	// A pointer so that an explicit 0 is distinguishable from "not set".
+	ToastDurationMs *int `json:"toast_duration_ms,omitempty"`
+
+	// ToastPosition is "bottom-right" (default) or "top-right".
+	ToastPosition string `json:"toast_position,omitempty"`
+}
+
+// normalizeToastPosition maps a user-supplied position onto a known value,
+// tolerating case and separator differences. Anything unrecognized falls back
+// to the default rather than erroring out.
+func normalizeToastPosition(s string) string {
+	s = strings.NewReplacer("_", "", "-", "", " ", "").Replace(strings.ToLower(strings.TrimSpace(s)))
+	switch s {
+	case "topright":
+		return ToastTopRight
+	case "bottomright":
+		return ToastBottomRight
+	default:
+		return defaultToastPosition
+	}
+}
+
+// ToastAtBottom reports whether toasts anchor to the bottom-right corner,
+// flush with the status bar. Safe to call on a nil Config.
+func (c *Config) ToastAtBottom() bool {
+	if c == nil {
+		return defaultToastPosition == ToastBottomRight
+	}
+	return normalizeToastPosition(c.UI.ToastPosition) == ToastBottomRight
+}
+
+// ToastDuration returns the configured toast lifetime. A zero duration means
+// toasts are disabled. Safe to call on a nil Config.
+func (c *Config) ToastDuration() time.Duration {
+	ms := defaultToastDurationMs
+	if c != nil && c.UI.ToastDurationMs != nil {
+		ms = *c.UI.ToastDurationMs
+	}
+	if ms < 0 {
+		ms = 0
+	}
+	return time.Duration(ms) * time.Millisecond
 }
 
 // KeybindingConfig holds custom keybinding settings
@@ -86,6 +149,7 @@ type ColorConfig struct {
 	// UI elements
 	SearchBoxBorder  string `json:"search_box_border"`
 	HelpBoxBorder    string `json:"help_box_border"`
+	ToastBorder      string `json:"toast_border"`
 	HoveredLinkURL   string `json:"hovered_link_url"`
 	
 	// Hyperlinks
@@ -126,6 +190,7 @@ func DefaultKeybindings() KeybindingConfig {
 func OneDarkConfig() *Config {
 	return &Config{
 		Keybindings: DefaultKeybindings(),
+		UI:          DefaultUI(),
 		Colors: ColorConfig{
 			// Headings - One Dark blue/purple shades
 			Heading1:       "#61afef",
@@ -169,6 +234,7 @@ func OneDarkConfig() *Config {
 			// UI elements
 			SearchBoxBorder: "#61afef", // Blue
 			HelpBoxBorder:   "#c678dd", // Purple
+			ToastBorder:     "#98c379", // Green
 			HoveredLinkURL:  "#56b6c2", // Cyan
 			
 			// Hyperlinks
@@ -179,10 +245,20 @@ func OneDarkConfig() *Config {
 	}
 }
 
+// DefaultUI returns the default UI settings
+func DefaultUI() UIConfig {
+	ms := defaultToastDurationMs
+	return UIConfig{
+		ToastDurationMs: &ms,
+		ToastPosition:   defaultToastPosition,
+	}
+}
+
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
 		Keybindings: DefaultKeybindings(),
+		UI:          DefaultUI(),
 		Colors: ColorConfig{
 			// Headings - blue shades
 			Heading1:       "#00d7ff",
@@ -226,6 +302,7 @@ func DefaultConfig() *Config {
 			// UI elements
 			SearchBoxBorder: "#ff5fff", // Magenta
 			HelpBoxBorder:   "#5f87d7", // Blue
+			ToastBorder:     "#00ff00", // Green
 			HoveredLinkURL:  "#00ffff", // Cyan
 			
 			// Hyperlinks
@@ -295,7 +372,12 @@ func (c *Config) Save() error {
 // fillDefaults fills in any missing configuration values with defaults
 func (c *Config) fillDefaults() {
 	defaults := DefaultConfig()
-	
+
+	// Fill in UI settings if missing. An explicit 0 is kept, since that is
+	// how a user disables toasts.
+	if c.UI.ToastDurationMs == nil { c.UI.ToastDurationMs = defaults.UI.ToastDurationMs }
+	if c.UI.ToastPosition == "" { c.UI.ToastPosition = defaults.UI.ToastPosition }
+
 	// Fill in keybindings if missing
 	if c.Keybindings.ScrollUp == nil { c.Keybindings.ScrollUp = defaults.Keybindings.ScrollUp }
 	if c.Keybindings.ScrollDown == nil { c.Keybindings.ScrollDown = defaults.Keybindings.ScrollDown }
@@ -343,6 +425,7 @@ func (c *Config) fillDefaults() {
 	
 	if c.Colors.SearchBoxBorder == "" { c.Colors.SearchBoxBorder = defaults.Colors.SearchBoxBorder }
 	if c.Colors.HelpBoxBorder == "" { c.Colors.HelpBoxBorder = defaults.Colors.HelpBoxBorder }
+	if c.Colors.ToastBorder == "" { c.Colors.ToastBorder = defaults.Colors.ToastBorder }
 	if c.Colors.HoveredLinkURL == "" { c.Colors.HoveredLinkURL = defaults.Colors.HoveredLinkURL }
 	// If hyperlink_underline is empty, use the link text color
 	if c.Colors.HyperlinkUnderline == "" { 

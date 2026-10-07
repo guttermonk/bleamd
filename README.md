@@ -19,6 +19,7 @@ A powerful standalone Markdown renderer for the terminal with advanced search, h
   - Match counter in status bar
   - Navigate with `n`/`N` (next/previous)
 - 🔗 **Clickable hyperlinks** - Links are underlined and clickable in supported terminals
+  - A toast in the top-right corner confirms when a link is handed to your browser
 - ⌨️ **Fully customizable keybindings** - Vim-like defaults with custom keyboard layout support
 - ❓ **Interactive Help** - Press `?` for instant keybinding reference popup
 - 🎨 **Advanced theming system**
@@ -214,12 +215,44 @@ Customize every visual element in your config file:
     "search_match": "#e5c07b",
     "search_box_border": "#ff5fff",
     "help_box_border": "#5f87d7",
+    "toast_border": "#00ff00",
     "hovered_link_url": "#00ffff",
     "hyperlink_underline": "#56b6c2",
     "hyperlink_hovered_underline": "#e5c07b"
   }
 }
 ```
+
+### 🔔 Toast Notifications
+
+When you click a link, a toast confirms it was handed to your browser. Both its
+lifetime and its corner are configurable under a `ui` section:
+
+```json
+{
+  "ui": {
+    "toast_duration_ms": 3000,
+    "toast_position": "bottom-right"
+  }
+}
+```
+
+| Setting | Values | Default | Notes |
+|---------|--------|---------|-------|
+| `toast_duration_ms` | any integer | `3000` | Milliseconds on screen. Set to `0` to disable toasts entirely. |
+| `toast_position` | `"bottom-right"`, `"top-right"` | `"bottom-right"` | `bottom-right` lines the message up with the hovered URL in the status bar. |
+
+With `bottom-right`, the toast's text sits on the same row as the status bar, so
+the URL and the confirmation read as a pair:
+
+```
+ 🔗 https://example.com      │ ↗ Opening in browser… │
+```
+
+This reserves one row below the status bar for the toast's bottom border. The
+row is held back permanently rather than only while a toast is visible, so the
+status bar never jumps. Choose `top-right` to keep the status bar flush with the
+bottom row instead.
 
 **Customizable elements:**
 - **Headings**: `heading1` through `heading6`  
@@ -229,7 +262,7 @@ Customize every visual element in your config file:
 - **Lists**: `list_marker`, `task_checked`, `task_unchecked`
 - **Layout**: `blockquote`, `table_header`, `table_row`, `table_border`
 - **Search**: `search_current`, `search_match`
-- **UI**: `status_bar_text`, `status_bar_bg`, `search_box_border`, `help_box_border`, `hovered_link`
+- **UI**: `status_bar_text`, `status_bar_bg`, `search_box_border`, `help_box_border`, `toast_border`, `hovered_link`
 
 All colors use hex format (e.g., `#ff0000`) and are automatically converted to the nearest ANSI 256 color for terminal display.
 

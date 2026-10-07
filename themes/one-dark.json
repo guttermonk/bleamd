@@ -27,6 +27,7 @@
     "status_bar_bg": "",
     "search_box_border": "#C578DD",
     "help_box_border": "#61AFEF",
+    "toast_border": "#98C379",
     "hovered_link_url": "#56B5C2",
     "hyperlink_text": "",
     "hyperlink_underline": "#56B5C2",

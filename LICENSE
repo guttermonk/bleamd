@@ -1,6 +1,10 @@
 MIT License
 
+Copyright (c) 2019 Michael Muré
 Copyright (c) 2025 guttermonk
+
+bleamd is derived from mdr (https://github.com/MichaelMure/mdr), which is
+licensed under the MIT License and copyright (c) 2019 Michael Muré.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

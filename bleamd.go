@@ -7,11 +7,13 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/MichaelMure/go-term-markdown"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-isatty"
+	"github.com/mattn/go-runewidth"
 	"github.com/pkg/errors"
 )
 
@@ -135,7 +137,11 @@ type model struct {
 	
 	// help state
 	helpActive bool
-	
+
+	// transient toast notification (top-right corner)
+	toastMsg string
+	toastSeq int
+
 	// configuration
 	config *Config
 	
@@ -148,6 +154,7 @@ type model struct {
 		helpBox   lipgloss.Style
 		searchBox lipgloss.Style
 		statusBar lipgloss.Style
+		toastBox  lipgloss.Style
 	}
 	
 	// mode tracking for status bar
@@ -207,11 +214,101 @@ func newModel(content []byte) model {
 	}
 	m.styles.searchBox = searchBoxStyle
 	
+	// Initialize toast style with configurable border color
+	toastBoxStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		Padding(0, 1)
+	if config.Colors.ToastBorder != "" {
+		if colorCode, err := hexToANSI(config.Colors.ToastBorder); err == nil {
+			toastBoxStyle = toastBoxStyle.BorderForeground(lipgloss.Color(fmt.Sprintf("%d", colorCode)))
+		}
+	}
+	m.styles.toastBox = toastBoxStyle
+
 	m.styles.statusBar = lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241")).
 		MarginTop(1)
-	
+
 	return m
+}
+
+// Inset of the toast box from the right edge, and from the top edge when the
+// toast is top-anchored.
+const (
+	toastMarginX   = 2
+	toastMarginTop = 1
+)
+
+// toastGutterRows is the number of rows held back below the status bar.
+//
+// A bottom-anchored toast must put its *text* row on the status bar so the
+// message lines up with the hovered URL. A bordered box is three rows tall, so
+// it needs one row below that text for its bottom border. The status bar is
+// otherwise the final row of the frame, so one row is reserved for it. The row
+// is permanently reserved rather than claimed only while a toast is visible,
+// which would make the status bar jump a line every time one appeared.
+func (m model) toastGutterRows() int {
+	if m.config.ToastAtBottom() {
+		return 1
+	}
+	return 0
+}
+
+// toastExpiredMsg clears the toast. The sequence number identifies which toast
+// the timer was started for, so a newer toast is not cleared by an older timer.
+type toastExpiredMsg struct {
+	seq int
+}
+
+// showToast sets the toast text and returns a command that clears it later.
+// A configured duration of zero disables toasts entirely.
+func (m *model) showToast(text string) tea.Cmd {
+	d := m.config.ToastDuration()
+	if d <= 0 {
+		return nil
+	}
+
+	m.toastMsg = text
+	m.toastSeq++
+	seq := m.toastSeq
+	return tea.Tick(d, func(time.Time) tea.Msg {
+		return toastExpiredMsg{seq: seq}
+	})
+}
+
+// renderToast composites the toast onto an already-rendered frame.
+func (m model) renderToast(frame string) string {
+	if m.toastMsg == "" {
+		return frame
+	}
+
+	boxLines := strings.Split(m.styles.toastBox.Render(m.toastMsg), "\n")
+	boxWidth := boxVisibleWidth(boxLines)
+	lines := strings.Split(frame, "\n")
+
+	// Bottom-anchored toasts sit flush with the final row, which is the status
+	// bar, so the box's bottom border lines up with the hovered URL. The frame
+	// is exactly m.height rows with nothing below it, so this is the lowest a
+	// bordered box can go.
+	startY := toastMarginTop
+	rowsNeeded := len(boxLines) + toastMarginTop
+	if m.config.ToastAtBottom() {
+		startY = len(lines) - len(boxLines)
+		rowsNeeded = len(boxLines)
+	}
+
+	// Skip the toast rather than clip it if the viewport cannot hold it.
+	if boxWidth+toastMarginX > m.width || rowsNeeded > len(lines) {
+		return frame
+	}
+
+	startX := m.width - boxWidth - toastMarginX
+	if startX < 0 {
+		startX = 0
+	}
+
+	overlayBox(lines, boxLines, startX, startY)
+	return strings.Join(lines, "\n")
 }
 
 func (m model) Init() tea.Cmd {
@@ -242,9 +339,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 		
+	case toastExpiredMsg:
+		// Ignore timers belonging to a toast that has since been replaced
+		if msg.seq == m.toastSeq {
+			m.toastMsg = ""
+		}
+		return m, nil
+
 	case tea.MouseMsg:
 		return m.handleMouseMsg(msg)
-		
+
 	case tea.KeyMsg:
 		return m.handleKeyMsg(msg)
 	}
@@ -253,29 +357,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) updateLinkPositions() model {
-	// DEBUG
-	f, _ := os.Create("/tmp/bleamd_update_debug.txt")
-	if f != nil {
-		fmt.Fprintf(f, "updateLinkPositions called\n")
-		fmt.Fprintf(f, "  width=%d, height=%d\n", m.width, m.height)
-		fmt.Fprintf(f, "  yOffset=%d, xOffset=%d\n", m.yOffset, m.xOffset)
-	}
-	
 	// Replicate the View() logic to get visible content and extract link positions
 	content := m.renderedContent
 	if m.search.term != "" {
 		content = m.search.HighlightContent(content)
 	}
-	
+
 	lines := strings.Split(string(content), "\n")
-	
-	if f != nil {
-		fmt.Fprintf(f, "  total lines=%d\n", len(lines))
-	}
-	
+
 	// Calculate visible area (same logic as View())
 	visibleHeight := m.height
 	visibleHeight -= 1 // Status bar
+	visibleHeight -= m.toastGutterRows()
 	if m.searchActive {
 		visibleHeight -= 3
 	}
@@ -305,29 +398,20 @@ func (m model) updateLinkPositions() model {
 	}
 	
 	visibleLines := lines[startLine:endLine]
-	
-	// Apply horizontal scrolling
+
+	// Apply horizontal scrolling. Lines carry ANSI/OSC 8 escapes, so skip by
+	// visible characters rather than bytes to avoid severing a sequence.
 	for i, line := range visibleLines {
-		if m.xOffset < len(line) {
-			visibleLines[i] = line[m.xOffset:]
-		} else {
-			visibleLines[i] = ""
+		if m.xOffset > 0 {
+			visibleLines[i] = skipVisibleChars(line, m.xOffset)
 		}
 	}
-	
+
 	result := strings.Join(visibleLines, "\n")
-	
+
 	// Extract link positions from visible content
 	m.linkPositions = m.extractLinkPositions(result)
-	
-	if f != nil {
-		fmt.Fprintf(f, "  extracted %d link positions\n", len(m.linkPositions))
-		for i, link := range m.linkPositions {
-			fmt.Fprintf(f, "    Link %d: %q at (%d,%d) width=%d\n", i, link.text, link.x, link.y, link.width)
-		}
-		f.Close()
-	}
-	
+
 	return m
 }
 
@@ -346,27 +430,32 @@ func (m model) handleMouseMsg(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Check if mouse is hovering over any link
 	previousHoveredURL := m.hoveredURL
 	m.hoveredURL = ""
-	
+
+	var cmd tea.Cmd
 	for _, link := range m.linkPositions {
 		// Check if mouse position is within link bounds
 		if msg.X >= link.x && msg.X < link.x+link.width && msg.Y == link.y {
 			m.hoveredURL = link.url
-			
+
 			// Handle click on link
 			if msg.Action == tea.MouseActionPress && msg.Button == tea.MouseButtonLeft {
-				openURL(link.url)
+				if err := openURL(link.url); err != nil {
+					cmd = m.showToast("✗ Could not open link")
+				} else {
+					cmd = m.showToast("↗ Opening in browser…")
+				}
 			}
 			break
 		}
 	}
-	
+
 	// If hover state changed, re-render to update underline colors
 	if previousHoveredURL != m.hoveredURL {
 		m.renderedContent = m.render()
 		m = m.updateLinkPositions()
 	}
-	
-	return m, nil
+
+	return m, cmd
 }
 
 func (m model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
@@ -647,6 +736,11 @@ func (m model) renderStatusBar() string {
 }
 
 func (m model) View() string {
+	// The toast overlays whatever frame was composed, including the help popup.
+	return m.renderToast(m.viewFrame())
+}
+
+func (m model) viewFrame() string {
 	// Get the content to display (needed even when help is active for background)
 	content := m.renderedContent
 	if m.search.term != "" {
@@ -662,7 +756,8 @@ func (m model) View() string {
 	
 	// Calculate visible area
 	visibleHeight := m.height
-	visibleHeight -= 2 // Reserve 2 blank lines above status bar  
+	visibleHeight -= 2 // Reserve 2 blank lines above status bar
+	visibleHeight -= m.toastGutterRows()
 	if m.searchActive {
 		visibleHeight -= 3 // Reserve space for search input
 	}
@@ -696,12 +791,11 @@ func (m model) View() string {
 	
 	visibleLines := lines[startLine:endLine]
 	
-	// Apply horizontal scrolling
+	// Apply horizontal scrolling. Lines carry ANSI/OSC 8 escapes, so skip by
+	// visible characters rather than bytes to avoid severing a sequence.
 	for i, line := range visibleLines {
-		if m.xOffset < len(line) {
-			visibleLines[i] = line[m.xOffset:]
-		} else {
-			visibleLines[i] = ""
+		if m.xOffset > 0 {
+			visibleLines[i] = skipVisibleChars(line, m.xOffset)
 		}
 	}
 	
@@ -753,7 +847,7 @@ func (m model) View() string {
 	// Which means: contentLines + padding + 2 + 1 = m.height
 	// So: padding = m.height - contentLines - 3
 	// BUT: we need one extra line because status bar shares the last line
-	linesNeededForStatusBar := 2 // 2 blank lines above status bar
+	linesNeededForStatusBar := 2 + m.toastGutterRows() // 2 blank lines above, plus any reserved gutter below
 	availableLinesForPadding := m.height - contentLines - linesNeededForStatusBar // status bar doesn't need a separate line count
 	
 	// Add padding to push status bar to bottom
@@ -766,9 +860,10 @@ func (m model) View() string {
 	// Add 2 blank lines above the status bar (margin top)
 	result += "\n\n"
 	
-	// Add status bar - this should be the last line, no newlines after
+	// Add status bar, then any reserved gutter row beneath it
 	result += m.renderStatusBar()
-	
+	result += strings.Repeat("\n", m.toastGutterRows())
+
 	return result
 }
 
@@ -780,61 +875,41 @@ func (m model) extractLinkPositions(content string) []linkPosition {
 	
 	var links []linkPosition
 	lines := strings.Split(content, "\n")
-	
-	// DEBUG
-	f, _ := os.Create("/tmp/bleamd_extract_debug.txt")
-	if f != nil {
-		fmt.Fprintf(f, "extractLinkPositions called with %d lines\n", len(lines))
-	}
-	
+
 	for y, line := range lines {
 		matches := hyperlinkPattern.FindAllStringSubmatchIndex(line, -1)
-		if f != nil && len(matches) > 0 {
-			fmt.Fprintf(f, "Line %d has %d matches\n", y, len(matches))
-			fmt.Fprintf(f, "  Raw line (first 200 chars): %q\n", line[:min(200, len(line))])
-		}
-		
+
 		for _, match := range matches {
 			if len(match) >= 6 {
 				urlStart := match[2]
 				urlEnd := match[3]
 				textStart := match[4]
 				textEnd := match[5]
-				
+
 				url := line[urlStart:urlEnd]
 				text := line[textStart:textEnd]
-				
-				// Strip ANSI codes from text to get visible length
+
+				// Strip ANSI codes from text to get the visible label
 				visibleText := stripANSI(text)
-				
-				// Calculate X position by counting visible characters before the link
-				// We need to strip ALL escape sequences from the portion before the link text
+
+				// Calculate X position by measuring the display width of the
+				// text before the link. Width, not byte length, so that CJK,
+				// emoji and combining marks give correct hit boxes.
 				beforeLink := line[:match[4]] // Get everything before the link text starts
 				visibleBefore := stripAllEscapeSequences(beforeLink)
-				x := len(visibleBefore)
-				
-				if f != nil {
-					fmt.Fprintf(f, "  Found link: url=%s, text=%q, visibleText=%q\n", url, text, visibleText)
-					fmt.Fprintf(f, "    beforeLink length=%d, visibleBefore=%q (len=%d)\n", len(beforeLink), visibleBefore, len(visibleBefore))
-					fmt.Fprintf(f, "    Position: x=%d, y=%d, width=%d\n", x, y, len(visibleText))
-				}
-				
+				x := runewidth.StringWidth(visibleBefore)
+
 				links = append(links, linkPosition{
-					url:    url,
-					text:   visibleText,
-					x:      x,
-					y:      y,
-					width:  len(visibleText),
+					url:   url,
+					text:  visibleText,
+					x:     x,
+					y:     y,
+					width: runewidth.StringWidth(visibleText),
 				})
 			}
 		}
 	}
-	
-	if f != nil {
-		fmt.Fprintf(f, "\nTotal links extracted: %d\n", len(links))
-		f.Close()
-	}
-	
+
 	return links
 }
 
@@ -926,25 +1001,7 @@ func (m model) renderHelp(backgroundContent []byte) string {
 	// Calculate centered position for overlay
 	helpHeight := len(helpLines)
 	// The border adds to the width, so measure the actual rendered width
-	// Use rune count for proper Unicode character counting
-	helpWidth := 0
-	for _, line := range helpLines {
-		stripped := stripANSI(line)
-		w := len([]rune(stripped)) // Count runes, not bytes
-		if w > helpWidth {
-			helpWidth = w
-		}
-	}
-	
-	// DEBUG
-	f, _ := os.Create("/tmp/bleamd_help_debug.txt")
-	if f != nil {
-		fmt.Fprintf(f, "m.width=%d, m.height=%d\n", m.width, m.height)
-		fmt.Fprintf(f, "helpWidth=%d, helpHeight=%d\n", helpWidth, helpHeight)
-		fmt.Fprintf(f, "First help line: %q\n", helpLines[0])
-		fmt.Fprintf(f, "First help line visible length: %d\n", len([]rune(stripANSI(helpLines[0]))))
-		f.Close()
-	}
+	helpWidth := boxVisibleWidth(helpLines)
 	
 	startY := (m.height - helpHeight) / 2
 	startX := (m.width - helpWidth) / 2
@@ -954,51 +1011,58 @@ func (m model) renderHelp(backgroundContent []byte) string {
 	if startY < 0 {
 		startY = 0
 	}
-	
-	// DEBUG
-	f, _ = os.OpenFile("/tmp/bleamd_help_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
-	if f != nil {
-		fmt.Fprintf(f, "startX=%d, startY=%d\n", startX, startY)
-		f.Close()
-	}
-	
-	// Overlay the help box onto the background
-	for i, helpLine := range helpLines {
-		y := startY + i
-		if y >= 0 && y < len(bgLines) {
-			bgLine := bgLines[y]
-			
-			// Build new line with overlay
-			var result strings.Builder
-			
-			// Left part of background
-			if startX > 0 {
-				leftPart := truncateVisibleChars(bgLine, startX)
-				result.WriteString(leftPart)
-				// Pad if needed
-				leftLen := len([]rune(stripANSI(leftPart)))
-				if leftLen < startX {
-					result.WriteString(strings.Repeat(" ", startX-leftLen))
-				}
-			}
-			
-			// Help box line
-			result.WriteString(helpLine)
-			
-			// Right part of background
-			helpVisibleLen := len([]rune(stripANSI(helpLine)))
-			endX := startX + helpVisibleLen
-			bgVisibleLen := len([]rune(stripANSI(bgLine)))
-			if endX < bgVisibleLen {
-				rightPart := skipVisibleChars(bgLine, endX)
-				result.WriteString(rightPart)
-			}
-			
-			bgLines[y] = result.String()
+
+	overlayBox(bgLines, helpLines, startX, startY)
+
+	return strings.Join(bgLines, "\n")
+}
+
+// boxVisibleWidth returns the widest visible line in a rendered box, ignoring
+// ANSI escapes.
+func boxVisibleWidth(boxLines []string) int {
+	width := 0
+	for _, line := range boxLines {
+		if w := visibleWidth(line); w > width {
+			width = w
 		}
 	}
-	
-	return strings.Join(bgLines, "\n")
+	return width
+}
+
+// overlayBox composites boxLines onto bgLines at (startX, startY), preserving
+// the background to the left and right of the box. bgLines is modified in place.
+func overlayBox(bgLines []string, boxLines []string, startX, startY int) {
+	for i, boxLine := range boxLines {
+		y := startY + i
+		if y < 0 || y >= len(bgLines) {
+			continue
+		}
+		bgLine := bgLines[y]
+
+		var result strings.Builder
+
+		// Left part of background
+		if startX > 0 {
+			leftPart := truncateVisibleChars(bgLine, startX)
+			result.WriteString(leftPart)
+			// Pad if the background line ends before the box starts, or if a
+			// wide character was dropped at the cut
+			if leftLen := visibleWidth(leftPart); leftLen < startX {
+				result.WriteString(strings.Repeat(" ", startX-leftLen))
+			}
+		}
+
+		// The box line itself
+		result.WriteString(boxLine)
+
+		// Right part of background
+		endX := startX + visibleWidth(boxLine)
+		if endX < visibleWidth(bgLine) {
+			result.WriteString(skipVisibleChars(bgLine, endX))
+		}
+
+		bgLines[y] = result.String()
+	}
 }
 
 // renderNormalView renders the view without the help overlay
@@ -1013,7 +1077,8 @@ func (m model) renderNormalView() string {
 	
 	// Calculate visible area
 	visibleHeight := m.height
-	visibleHeight -= 2 // Reserve 2 blank lines above status bar  
+	visibleHeight -= 2 // Reserve 2 blank lines above status bar
+	visibleHeight -= m.toastGutterRows()
 	if m.searchActive {
 		visibleHeight -= 3 // Reserve space for search input
 	}
@@ -1047,12 +1112,11 @@ func (m model) renderNormalView() string {
 	
 	visibleLines := lines[startLine:endLine]
 	
-	// Apply horizontal scrolling
+	// Apply horizontal scrolling. Lines carry ANSI/OSC 8 escapes, so skip by
+	// visible characters rather than bytes to avoid severing a sequence.
 	for i, line := range visibleLines {
-		if m.xOffset < len(line) {
-			visibleLines[i] = line[m.xOffset:]
-		} else {
-			visibleLines[i] = ""
+		if m.xOffset > 0 {
+			visibleLines[i] = skipVisibleChars(line, m.xOffset)
 		}
 	}
 	
@@ -1104,7 +1168,7 @@ func (m model) renderNormalView() string {
 	// Which means: contentLines + padding + 2 + 1 = m.height
 	// So: padding = m.height - contentLines - 3
 	// BUT: we need one extra line because status bar shares the last line
-	linesNeededForStatusBar := 2 // 2 blank lines above status bar
+	linesNeededForStatusBar := 2 + m.toastGutterRows() // 2 blank lines above, plus any reserved gutter below
 	availableLinesForPadding := m.height - contentLines - linesNeededForStatusBar // status bar doesn't need a separate line count
 	
 	// Add padding to push status bar to bottom
@@ -1117,59 +1181,79 @@ func (m model) renderNormalView() string {
 	// Add 2 blank lines above the status bar (margin top)
 	result += "\n\n"
 	
-	// Add status bar - this should be the last line, no newlines after
+	// Add status bar, then any reserved gutter row beneath it
 	result += m.renderStatusBar()
-	
+	result += strings.Repeat("\n", m.toastGutterRows())
+
 	return result
 }
 
-// truncateVisibleChars returns the prefix of s up to n visible characters
+// visibleWidth returns the display width of s in terminal columns, ignoring
+// escape sequences. Wide characters count as 2 and combining marks as 0, so
+// this matches the column numbers the terminal reports for mouse events.
+func visibleWidth(s string) int {
+	return runewidth.StringWidth(stripANSI(s))
+}
+
+// escapeEnd returns the index just past the escape sequence starting at i,
+// along with whether it was a recognized CSI or OSC sequence. An unrecognized
+// escape advances a single byte.
+func escapeEnd(b []byte, i int) (int, bool) {
+	start := i
+	i++ // consume ESC
+	if i < len(b) && b[i] == '[' {
+		// CSI escape (\x1b[...m)
+		i++
+		for i < len(b) && !((b[i] >= 'A' && b[i] <= 'Z') || (b[i] >= 'a' && b[i] <= 'z')) {
+			i++
+		}
+		if i < len(b) {
+			i++
+		}
+		return i, true
+	}
+	if i < len(b) && b[i] == ']' {
+		// OSC escape (\x1b]...\x1b\\)
+		i++
+		for i < len(b)-1 {
+			if b[i] == '\x1b' && i+1 < len(b) && b[i+1] == '\\' {
+				i += 2
+				break
+			}
+			i++
+		}
+		return i, true
+	}
+	return start + 1, false
+}
+
+// truncateVisibleChars returns the prefix of s occupying at most n display
+// columns. A wide character that would straddle the cut is dropped rather than
+// split, so the result may be one column short of n.
 func truncateVisibleChars(s string, n int) string {
 	var result strings.Builder
-	visibleCount := 0
+	col := 0
 	i := 0
-	bytes := []byte(s)
-	
-	for i < len(bytes) && visibleCount < n {
-		if bytes[i] == '\x1b' {
-			// Start of escape sequence
+	b := []byte(s)
+
+	for i < len(b) {
+		if b[i] == '\x1b' {
 			escStart := i
-			i++
-			if i < len(bytes) && bytes[i] == '[' {
-				// ANSI escape (\x1b[...m)
-				i++
-				for i < len(bytes) && !((bytes[i] >= 'A' && bytes[i] <= 'Z') || (bytes[i] >= 'a' && bytes[i] <= 'z')) {
-					i++
-				}
-				if i < len(bytes) {
-					i++
-				}
-				result.Write(bytes[escStart:i])
-			} else if i < len(bytes) && bytes[i] == ']' {
-				// OSC escape (\x1b]...\x1b\\)
-				i++
-				for i < len(bytes)-1 {
-					if bytes[i] == '\x1b' && i+1 < len(bytes) && bytes[i+1] == '\\' {
-						i += 2
-						break
-					}
-					i++
-				}
-				result.Write(bytes[escStart:i])
-			} else {
-				// Unknown escape, just write the ESC char
-				result.WriteByte(bytes[escStart])
-				i = escStart + 1
-			}
-		} else {
-			// Regular character - decode UTF-8 rune
-			r, size := decodeRuneInBytes(bytes[i:])
-			result.WriteRune(r)
-			i += size
-			visibleCount++
+			i, _ = escapeEnd(b, i)
+			result.Write(b[escStart:i])
+			continue
 		}
+
+		r, size := decodeRuneInBytes(b[i:])
+		w := runewidth.RuneWidth(r)
+		if col+w > n {
+			break
+		}
+		result.WriteRune(r)
+		i += size
+		col += w
 	}
-	
+
 	return result.String()
 }
 
@@ -1191,59 +1275,53 @@ func decodeRuneInBytes(b []byte) (rune, int) {
 	return r, len(string(r))
 }
 
-// skipVisibleChars returns the suffix of s starting after n visible characters
+// skipVisibleChars returns the suffix of s starting at display column n,
+// carrying forward the escape sequences that were active at the cut. A wide
+// character straddling the cut cannot be split, so its orphaned cells are
+// emitted as spaces to keep the suffix exactly (width - n) columns wide.
+//
+// Every recognized sequence is carried forward, including those before the
+// cut: escapes occupy no columns, and dropping them would strand the suffix
+// with the wrong colors and break an OSC 8 link that the cut lands inside.
 func skipVisibleChars(s string, n int) string {
-	visibleCount := 0
+	col := 0
 	i := 0
-	bytes := []byte(s)
+	b := []byte(s)
 	var pendingEscapes strings.Builder
-	
-	for i < len(bytes) {
-		if bytes[i] == '\x1b' {
-			// Start of escape sequence
+
+	for i < len(b) {
+		if b[i] == '\x1b' {
 			escStart := i
-			i++
-			if i < len(bytes) && bytes[i] == '[' {
-				// ANSI escape (\x1b[...m)
-				i++
-				for i < len(bytes) && !((bytes[i] >= 'A' && bytes[i] <= 'Z') || (bytes[i] >= 'a' && bytes[i] <= 'z')) {
-					i++
-				}
-				if i < len(bytes) {
-					i++
-				}
-				if visibleCount >= n {
-					pendingEscapes.Write(bytes[escStart:i])
-				}
-			} else if i < len(bytes) && bytes[i] == ']' {
-				// OSC escape (\x1b]...\x1b\\)
-				i++
-				for i < len(bytes)-1 {
-					if bytes[i] == '\x1b' && i+1 < len(bytes) && bytes[i+1] == '\\' {
-						i += 2
-						break
-					}
-					i++
-				}
-				if visibleCount >= n {
-					pendingEscapes.Write(bytes[escStart:i])
-				}
-			} else {
-				// Unknown escape, just skip the ESC char
-				i = escStart + 1
+			end, recognized := escapeEnd(b, i)
+			i = end
+			if recognized {
+				pendingEscapes.Write(b[escStart:end])
 			}
-		} else {
-			if visibleCount >= n {
-				return pendingEscapes.String() + string(bytes[i:])
-			}
-			// Decode UTF-8 rune to count properly
-			_, size := decodeRuneInBytes(bytes[i:])
-			i += size
-			visibleCount++
+			continue
 		}
+
+		if col >= n {
+			break
+		}
+
+		r, size := decodeRuneInBytes(b[i:])
+		i += size
+		col += runewidth.RuneWidth(r)
 	}
-	
-	return ""
+
+	// Nothing of the line reaches column n, so there is nothing to style.
+	// Returning the escapes alone would leak their state into the next line.
+	if i >= len(b) && col <= n {
+		return ""
+	}
+
+	var result strings.Builder
+	result.WriteString(pendingEscapes.String())
+	if col > n {
+		result.WriteString(strings.Repeat(" ", col-n))
+	}
+	result.Write(b[i:])
+	return result.String()
 }
 
 func (m model) buildHelpContent() string {
@@ -1313,30 +1391,10 @@ func (m model) executeSearch() (model, tea.Cmd) {
 
 	// Perform the search
 	m.search.SetTerm(searchText, string(m.renderedContent))
-	
-	// DEBUG: Write match count to file
-	f, _ := os.Create("/tmp/bleamd_debug.txt")
-	if f != nil {
-		fmt.Fprintf(f, "Search term: %s\n", searchText)
-		fmt.Fprintf(f, "Match count: %d\n", m.search.GetMatchCount())
-		fmt.Fprintf(f, "Current index: %d\n", m.search.currentIndex)
-		if match, ok := m.search.GetCurrentMatch(); ok {
-			fmt.Fprintf(f, "Current match: line %d, col %d\n", match.lineNumber, match.column)
-		}
-		fmt.Fprintf(f, "yOffset before scroll: %d\n", m.yOffset)
-		f.Close()
-	}
-	
+
 	// If we found matches, scroll to the first one
 	if match, ok := m.search.GetCurrentMatch(); ok {
 		m = m.scrollToLine(match.lineNumber)
-	}
-	
-	// DEBUG: Write yOffset after scroll
-	f, _ = os.OpenFile("/tmp/bleamd_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
-	if f != nil {
-		fmt.Fprintf(f, "yOffset after scroll: %d\n", m.yOffset)
-		f.Close()
 	}
 
 	m.searchActive = false
@@ -1370,30 +1428,8 @@ func (m model) nextMatch() model {
 		return m
 	}
 	
-	// DEBUG
-	f, _ := os.OpenFile("/tmp/bleamd_debug.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-	if f != nil {
-		fmt.Fprintf(f, "\n=== NextMatch called ===\n")
-		fmt.Fprintf(f, "Before: currentIndex=%d, yOffset=%d\n", m.search.currentIndex, m.yOffset)
-		f.Close()
-	}
-	
 	if match, ok := m.search.NextMatch(); ok {
-		// DEBUG
-		f, _ := os.OpenFile("/tmp/bleamd_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
-		if f != nil {
-			fmt.Fprintf(f, "NextMatch returned: line %d, col %d\n", match.lineNumber, match.column)
-			f.Close()
-		}
-		
 		m = m.scrollToLine(match.lineNumber)
-		
-		// DEBUG
-		f, _ = os.OpenFile("/tmp/bleamd_debug.txt", os.O_APPEND|os.O_WRONLY, 0644)
-		if f != nil {
-			fmt.Fprintf(f, "After scroll: yOffset=%d\n", m.yOffset)
-			f.Close()
-		}
 	}
 	
 	return m.updateLinkPositions()
@@ -1414,7 +1450,8 @@ func (m model) prevMatch() model {
 func (m model) scrollToLine(lineNumber int) model {
 	// Calculate visible height (same as in View())
 	visibleHeight := m.height
-	visibleHeight -= 2 // Reserve 2 blank lines above status bar  
+	visibleHeight -= 2 // Reserve 2 blank lines above status bar
+	visibleHeight -= m.toastGutterRows()
 	if m.searchActive {
 		visibleHeight -= 3 // Reserve space for search input
 	}
