@@ -151,7 +151,7 @@ func TestToastGutterReservedOnlyForBottom(t *testing.T) {
 // status bar is showing a URL and the frame has its true layout.
 func alignModel(t *testing.T, w, h int, position string) model {
 	t.Helper()
-	m := newModel([]byte("# Title\n\nText with a [link](https://example.com) here.\n"))
+	m := newModel([]byte("# Title\n\nText with a [link](https://example.com) here.\n"), false)
 	m.config = DefaultConfig()
 	m.config.UI.ToastPosition = position
 	m.width = w

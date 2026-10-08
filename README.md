@@ -98,9 +98,14 @@ go build
 bleamd README.md                  # Render a markdown file
 bleamd < file.md                  # Read from stdin
 curl example.com/file.md | bleamd # Pipe from network
+bleamd --section-numbers README.md # Number the headings (1, 1.1, 1.2, ...)
+bleamd -sn README.md              # Same, short form
 bleamd --init-config              # Create default config file
 bleamd --config-path              # Show config file location
 ```
+
+Headings are rendered as written by default. Pass `--section-numbers` (or
+`-sn`) to prefix every heading with its section number.
 
 ## ⌨️ Keybindings
 

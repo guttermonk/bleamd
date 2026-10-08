@@ -20,43 +20,45 @@ import (
 const padding = 4
 
 func main() {
-	if len(os.Args) >= 2 && (os.Args[1] == "version" || os.Args[1] == "--version") {
+	args, sectionNumbers := parseArgs(os.Args[1:])
+
+	if len(args) >= 1 && (args[0] == "version" || args[0] == "--version") {
 		printVersion()
 		return
 	}
 
-	if len(os.Args) >= 2 && (os.Args[1] == "--init-config") {
+	if len(args) >= 1 && (args[0] == "--init-config") {
 		theme := "default"
-		if len(os.Args) >= 3 {
-			theme = os.Args[2]
+		if len(args) >= 2 {
+			theme = args[1]
 		}
 		initConfig(theme)
 		return
 	}
 
-	if len(os.Args) >= 2 && (os.Args[1] == "--config-path") {
+	if len(args) >= 1 && (args[0] == "--config-path") {
 		fmt.Printf("Config file location: %s\n", getConfigPath())
 		return
 	}
 
 	var content []byte
 
-	switch len(os.Args) {
-	case 1:
+	switch len(args) {
+	case 0:
 		if isatty.IsTerminal(os.Stdin.Fd()) {
-			exitError(fmt.Errorf("usage: %s <file.md>", os.Args[0]))
+			exitError(fmt.Errorf("usage: %s [--section-numbers] <file.md>", os.Args[0]))
 		}
 		data, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			exitError(errors.Wrap(err, "error while reading STDIN"))
 		}
 		content = data
-	case 2:
-		data, err := ioutil.ReadFile(os.Args[1])
+	case 1:
+		data, err := ioutil.ReadFile(args[0])
 		if err != nil {
 			exitError(errors.Wrap(err, "error while reading file"))
 		}
-		err = os.Chdir(path.Dir(os.Args[1]))
+		err = os.Chdir(path.Dir(args[0]))
 		if err != nil {
 			exitError(err)
 		}
@@ -66,7 +68,7 @@ func main() {
 		exitError(fmt.Errorf("only one file is supported"))
 	}
 
-	model := newModel(content)
+	model := newModel(content, sectionNumbers)
 	
 	// Use default mouse mode (button clicks only) to allow text selection
 	// WithMouseAllMotion() would capture all mouse events and prevent selection
@@ -74,6 +76,22 @@ func main() {
 	if _, err := p.Run(); err != nil {
 		exitError(errors.Wrap(err, "error starting the interactive UI"))
 	}
+}
+
+// parseArgs pulls the flags bleamd understands out of the command line and
+// returns the remaining arguments untouched, so that subcommands and the file
+// name keep working whatever order the flags come in.
+func parseArgs(argv []string) (args []string, sectionNumbers bool) {
+	for _, arg := range argv {
+		switch arg {
+		case "--section-numbers", "-sn":
+			sectionNumbers = true
+		default:
+			args = append(args, arg)
+		}
+	}
+
+	return args, sectionNumbers
 }
 
 func exitError(err error) {
@@ -162,14 +180,17 @@ type model struct {
 	
 	// mouse capture mode - toggleable for text selection
 	mouseCaptureEnabled bool
+
+	// keep the section numbers the markdown renderer puts on headings
+	sectionNumbers bool
 }
 
-func newModel(content []byte) model {
+func newModel(content []byte, sectionNumbers bool) model {
 	config, err := LoadConfig()
 	if err != nil {
 		config = DefaultConfig()
 	}
-	
+
 	m := model{
 		content:             content,
 		raw:                 string(content),
@@ -178,6 +199,7 @@ func newModel(content []byte) model {
 		config:              config,
 		mode:                "reading",
 		mouseCaptureEnabled: true, // Start with mouse capture enabled for hover
+		sectionNumbers:      sectionNumbers,
 	}
 	
 	// Initial render with default width
@@ -952,7 +974,11 @@ func (m model) render() []byte {
 	processedMarkdown := processBadges(m.raw, m.config)
 	
 	rendered := markdown.Render(processedMarkdown, renderWidth, padding, opts...)
-	
+
+	// Drop the heading decorations the renderer adds on its own: the section
+	// numbers, unless the user asked for them, and the rule under h1 headings
+	rendered = cleanHeadings(rendered, processedMarkdown, m.sectionNumbers)
+
 	// Add hyperlinks with underlines (pass hoveredURL for hover state)
 	rendered = addHyperlinks(rendered, processedMarkdown, m.config, m.hoveredURL)
 	
