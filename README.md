@@ -1,3 +1,7 @@
+| ⚠️ **This project is archived** |
+| :--- |
+| **bleamd is no longer maintained.** Development has moved to [**guttermonk/inlyne**](https://github.com/guttermonk/inlyne), a fork of [inlyne](https://github.com/Inlyne-Project/inlyne) — please use that instead. This repository stays up for reference, and the final release remains available on the [releases page](https://github.com/guttermonk/bleamd/releases/latest), but no further updates, fixes, or support are planned. |
+
 # 🌈 bleamd
 
 [![GitHub license](https://img.shields.io/github/license/guttermonk/bleamd.svg?style=for-the-badge)](https://github.com/guttermonk/bleamd/blob/master/LICENSE)
